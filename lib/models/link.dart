@@ -1,20 +1,25 @@
+import 'dart:convert';
+
+import 'package:json_annotation/json_annotation.dart';
+
+@JsonSerializable(nullable: false)
 class Link {
   String title;
   String url;
-  bool isFavourite;
+  List<dynamic> groups;
 
   Link(
-    {this.title, this.url, isFavourite : false}) : this.isFavourite = isFavourite ?? false;
+    {this.title, this.url, this.groups});
 
   Link.fromJson(Map<String, dynamic> json)
       : title = json['title'],
         url = json['url'],
-        isFavourite = json['isFavourite'];
+        groups = json['groups'].toList();
 
   Map<String, dynamic> toJson() =>
       {
         'title': title,
         'url': url,
-        'isFavourite': isFavourite
+        'groups': groups.map((e) => jsonEncode(e.toJson())).toList()
       };
 }
