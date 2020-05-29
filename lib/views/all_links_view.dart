@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:parchment/models/link.dart';
+import 'package:parchment/services/service_locator.dart';
+import 'package:parchment/services/storage_api.dart';
 
 class LinksViewModel extends ChangeNotifier {
+
+  final StorageApi _storageService = serviceLocator<StorageApi>();
 
   List<Link> _links = [];
   List<Link> _searched = [];
@@ -19,30 +23,20 @@ class LinksViewModel extends ChangeNotifier {
     _favourites.remove(link);
   }
 
-  void loadData() async {
-    addLink(Link(
-        id: 0,
-        title: 'BBC News',
-        url: 'https://www.bbc.co.uk/news',
-        isFavourite: true
-    ));
-    addLink(Link(
-          id: 0,
-          title: 'BBC Sports',
-          url: 'https://www.bbc.co.uk/sport',
-          isFavourite: false
-    ));
+  loadData() async {
+    _links = await _storageService.fetchLinks();
     searchList('');
     notifyListeners();
   }
 
-  void addLink(Link link) {
+  addLink(Link link) async {
     _links.add(link);
     if (link.isFavourite) _addFavourite(link);
+    await _storageService.saveLinks(_links);
     notifyListeners();
   }
 
-  void toggleFavouriteStatus(int linkIndex) {
+  toggleFavouriteStatus(int linkIndex) async {
     final isFavourite = !_links[linkIndex].isFavourite;
     _links[linkIndex].isFavourite = isFavourite;
     if (isFavourite) {
@@ -50,6 +44,7 @@ class LinksViewModel extends ChangeNotifier {
     } else {
       _removeFavourite(_links[linkIndex]);
     }
+    await _storageService.saveLinks(_links);
     notifyListeners();
   }
 

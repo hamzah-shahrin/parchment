@@ -1,10 +1,20 @@
 class Link {
-  int id;
   String title;
   String url;
   bool isFavourite;
 
   Link(
-    {this.id, this.title, this.url, this.isFavourite}
-  );
+    {this.title, this.url, isFavourite : false}) : this.isFavourite = isFavourite ?? false;
+
+  Link.fromJson(Map<String, dynamic> json)
+      : title = json['title'],
+        url = json['url'],
+        isFavourite = json['isFavourite'];
+
+  Map<String, dynamic> toJson() =>
+      {
+        'title': title,
+        'url': url,
+        'isFavourite': isFavourite
+      };
 }
