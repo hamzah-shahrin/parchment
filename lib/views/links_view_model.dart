@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:parchment/models/group.dart';
 import 'package:parchment/models/link.dart';
@@ -6,56 +9,45 @@ import 'package:parchment/services/storage_api.dart';
 
 class LinksViewModel extends ChangeNotifier {
 
-  final StorageApi _storageService = serviceLocator<StorageApi>();
-  FetchedDataFormat _fetchedData = FetchedDataFormat();
+  Future<List<Link>> _searched;
 
-  List<Link> _links = [];
-  List<Link> _searched = [];
-  List<Group> _groups = [];
+  Future<List<Link>> get searched => _searched;
 
-  List<Link> get links => _links;
-  List<Link> get searched => _searched;
-  List<Group> get groups =>_groups;
+  Future<List<Link>> get links async =>
+      serviceLocator<StorageApi>().fetchLinks().then((value) => value.links);
 
-  loadData() async {
-    _fetchedData = await _storageService.fetchLinks();
-    _links = _fetchedData.links;
-    _groups = _fetchedData.groups;
-    searchList('');
-    notifyListeners();
+  Future<List<Group>> get groups async =>
+      serviceLocator<StorageApi>().fetchLinks().then((value) => value.groups);
+
+  void initialise() {
+    search();
   }
 
-  addToGroup(Link link, Group group) async {
-    link.groups.add(group);
-    await _storageService.saveLinks(links);
-    notifyListeners();
+  Future<void> addLink(Link link) async {
+    links.then((value) {
+      value.add(link);
+      serviceLocator<StorageApi>().saveLinks(value);
+    });
   }
 
-  removeFromGroup(Link link, Group group) async {
-    link.groups.remove(group);
-    await _storageService.saveLinks(links);
-    notifyListeners();
-  }
-
-  addLink(Link link) async {
-    _links.add(link);
-    await _storageService.saveLinks(_links);
-    notifyListeners();
-  }
-
-  removeLink(Link link) async {
-    _links.remove(link);
-    await _storageService.saveLinks(links);
-    notifyListeners();
-  }
-
-  void searchList(String term) {
-    loadData();
-    _searched = _links
-        .where((element) =>
-            (element.title.contains(term)) || (element.url.contains(term)))
-        .toList();
-    notifyListeners();
+  Future<void> search({String term: '', List<int> groupIds}) async {
+    var temp =
+        serviceLocator<StorageApi>().fetchLinks().then((value) =>
+        value
+            .links);
+    if (groupIds == null || groupIds.length == 0) {
+      _searched = temp.then((value) =>
+          value
+              .where((link) =>
+          (link.title.contains(term)) || (link.url.contains(term)))
+              .toList());
+    } else {
+      _searched = temp.then((value) =>
+          value
+              .where((link) => (listEquals(link.groupIds, groupIds)))
+              .toList());
+      stderr.writeln('Searched: $_searched');
+    }
   }
 }
 

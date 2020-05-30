@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
@@ -13,15 +15,18 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreen extends State<SearchScreen> {
-  final _formKey = GlobalKey<FormState>();
 
-  LinksViewModel model = serviceLocator<LinksViewModel>();
-  LinksViewModel dialogModel = serviceLocator<LinksViewModel>();
+  final _formKey = GlobalKey<FormState>();
+  final titleController = TextEditingController();
+  final urlController = TextEditingController();
+
+  final searchModel = serviceLocator<LinksViewModel>();
+
+  var selectedGroups = <int>[];
 
   @override
   void initState() {
-    model.loadData();
-    dialogModel.loadData();
+    searchModel.initialise();
     super.initState();
   }
 
@@ -35,9 +40,15 @@ class _SearchScreen extends State<SearchScreen> {
       floatingActionButton: FloatingActionButton(
         child: Icon(Icons.add),
         onPressed: () {
-          showDialog(
-              context: context, builder: (context) => _buildDialog(dialogModel));
-          setState(() { model.searchList(''); });
+          setState(() {
+            showDialog(
+                context: context,
+                builder: (context) =>
+                    _buildDialog(serviceLocator<LinksViewModel>()));
+          });
+          setState(() {
+            searchModel.search(term: '');
+          });
         },
       ),
       body: Column(
@@ -51,7 +62,7 @@ class _SearchScreen extends State<SearchScreen> {
                   hintText: 'Search for a link'),
               onChanged: (query) {
                 setState(() {
-                  model.searchList(query);
+                  searchModel.search(term: query);
                 });
               },
             ),
@@ -62,47 +73,19 @@ class _SearchScreen extends State<SearchScreen> {
                 padding: EdgeInsets.only(
                     top: 3.0, left: 8.0, right: 3.0, bottom: 3.0),
                 child: Row(
+                  mainAxisSize: MainAxisSize.max,
                   children: <Widget>[
                     Text('Filter by group:'),
                     Spacer(),
-                    Padding(
-                      padding: EdgeInsets.only(right: 5.0),
-                      child: CircleAvatar(
-                          radius: 9,
-                          backgroundColor: Colors.blueAccent,
-                          child: IconButton(
-                            icon: Icon(Icons.adjust,
-                                color: Colors.blueAccent, size: 1),
-                            onPressed: () {},
-                          )),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.only(right: 5.0),
-                      child: CircleAvatar(
-                          radius: 9,
-                          backgroundColor: Colors.redAccent,
-                          child: IconButton(
-                            icon: Icon(Icons.adjust,
-                                color: Colors.redAccent, size: 1),
-                            onPressed: () {},
-                          )),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.only(right: 5.0),
-                      child: CircleAvatar(
-                          radius: 9,
-                          backgroundColor: Colors.greenAccent,
-                          child: IconButton(
-                            icon: Icon(Icons.adjust,
-                                color: Colors.greenAccent, size: 1),
-                            onPressed: () {},
-                          )),
-                    ),
+                    Container(
+                      height: 30.0,
+                      child: _buildFilterList(serviceLocator<LinksViewModel>()),
+                    )
                   ],
                 ),
               )),
           Expanded(
-            child: _buildResults(model),
+            child: _buildResults(searchModel),
           )
         ],
       ),
@@ -110,9 +93,7 @@ class _SearchScreen extends State<SearchScreen> {
   }
 
   Widget _buildDialog(LinksViewModel viewModel) {
-    final titleController = TextEditingController();
-    final urlController = TextEditingController();
-    return new ChangeNotifierProvider<LinksViewModel>(
+    return ListenableProvider<LinksViewModel>(
         create: (context) => viewModel,
         child: Consumer<LinksViewModel>(
             builder: (context, model, child) => AlertDialog(
@@ -145,15 +126,17 @@ class _SearchScreen extends State<SearchScreen> {
                           textTheme: Theme.of(context).buttonTheme.textTheme,
                           onPressed: () {
                             if (_formKey.currentState.validate()) {
-                              model.addLink(Link(
+                              serviceLocator<LinksViewModel>().addLink(Link(
                                   title: titleController.text,
                                   url: urlController.text,
                                   groups: [
-                                    Group(title: 'BBC', color: Colors.amber),
                                     Group(
-                                        title: 'Test',
-                                        color: Colors.greenAccent)
+                                        title: 'Test Group 3',
+                                        color: Colors.amber,
+                                        id: 7)
                                   ]));
+                              titleController.clear();
+                              urlController.clear();
                               Navigator.pop(context);
                             }
                           },
@@ -162,38 +145,118 @@ class _SearchScreen extends State<SearchScreen> {
                       )
                     ],
                   ),
-                )
-            )
-        )
+                ))));
+  }
+
+  Widget _buildFilterList(LinksViewModel viewModel) {
+    return ChangeNotifierProvider<LinksViewModel>(
+      create: (context) => viewModel,
+      child: Consumer<LinksViewModel>(
+        builder: (context, model, child) => FutureBuilder<List<Group>>(
+          future: model.groups,
+          builder: (context, snapshot) {
+            List<Group> groups = snapshot.data ?? [];
+            return ListView.builder(
+                scrollDirection: Axis.horizontal,
+                shrinkWrap: true,
+                itemCount: groups.length,
+                itemBuilder: (context, index) {
+                  var filterButton = FilterButton(
+                    defaultColor: groups[index].color,
+                    selectedColor: Colors.black,
+                    tap: () {
+                      setState(() {
+                        !selectedGroups.contains(groups[index].id)
+                            ? selectedGroups.add(groups[index].id)
+                            : selectedGroups.remove(groups[index].id);
+                        searchModel.search(groupIds: selectedGroups);
+                      });
+                    },
+                  );
+                  return filterButton;
+                });
+          },
+        ),
+      ),
     );
   }
 
   Widget _buildResults(LinksViewModel viewModel) {
-    return new ChangeNotifierProvider<LinksViewModel>(
-      create: (context) => viewModel,
-      child: Consumer<LinksViewModel>(
-        builder: (context, model, child) => ListView.builder(
-          itemCount: model.searched.length,
-          itemBuilder: (context, index) {
-            return Padding(
-              padding: EdgeInsets.only(left: 6.5, right: 6.5),
-              child: Card(
-                child: ListTile(
-                    title: Text('${model.searched[index].title}'),
-                    subtitle: Text('${model.searched[index].url}'),
-                    trailing: Wrap(
-                        spacing: 7,
-                        children: List<Widget>.generate(
-                            model.searched[index].groups.length,
-                            (groupIndex) => CircleAvatar(
-                                radius: 9,
-                                backgroundColor: model.searched[index]
-                                    .groups[groupIndex].color)))),
-              ),
-            );
-          },
-        ),
-      ),
+    return ChangeNotifierProvider<LinksViewModel>(
+        create: (context) => viewModel,
+        child: Consumer<LinksViewModel>(
+            builder: (context, model, child) => FutureBuilder<List<Link>>(
+                  future: model.searched,
+                  builder: (context, snapshot) {
+                    List<Link> links = snapshot.data ?? [];
+                    return ListView.builder(
+                      itemCount: links.length,
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: EdgeInsets.only(left: 6.5, right: 6.5),
+                          child: Card(
+                            child: ListTile(
+                                title: Text('${links[index].title}'),
+                                subtitle: Text('${links[index].url}'),
+                                dense: true,
+                                trailing: Wrap(
+                                    spacing: 7,
+                                    children: List<Widget>.generate(
+                                        links[index].groups.length,
+                                        (groupIndex) => CircleAvatar(
+                                            radius: 9,
+                                            backgroundColor: links[index]
+                                                .groups[groupIndex]
+                                                .color)
+                                    )
+                                )
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+            )
+        )
+    );
+  }
+}
+
+// ignore: must_be_immutable
+class FilterButton extends StatefulWidget {
+  VoidCallback tap;
+  Color defaultColor;
+  Color selectedColor;
+
+  FilterButton({this.tap, this.defaultColor, this.selectedColor});
+
+  @override
+  State<StatefulWidget> createState() => _FilterButton();
+}
+
+class _FilterButton extends State<FilterButton> {
+  bool _selected = false;
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+        padding: EdgeInsets.only(right: 5.0),
+        child: CircleAvatar(
+          radius: 9,
+          backgroundColor:
+              _selected ? widget.selectedColor : widget.defaultColor,
+          child: CircleAvatar(
+              radius: 7,
+              backgroundColor: widget.defaultColor,
+              child: IconButton(
+                icon: Icon(Icons.adjust, color: widget.defaultColor, size: 1),
+                onPressed: () {
+                  widget.tap();
+                  this.setState(() {
+                    _selected = !_selected;
+                  });
+                },
+              )),
+        )
     );
   }
 }

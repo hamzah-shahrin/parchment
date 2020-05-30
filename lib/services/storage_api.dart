@@ -20,13 +20,17 @@ class StorageApiImpl implements StorageApi {
     final prefs = await SharedPreferences.getInstance();
     final List<Link> links = [];
     final List<Group> groups = [];
+    final List<int> ids = [];
     prefs.getKeys().forEach((key) {
       var data = jsonDecode(prefs.get(key));
       data['groups'] =
           data['groups'].map((group) => Group.fromJson(jsonDecode(group)));
       stderr.writeln(data);
       data['groups'].forEach((group) {
-        if (!groups.contains(group)) groups.add(group);
+        if (!ids.contains(group.id)) {
+          groups.add(group);
+          ids.add(group.id);
+        }
       });
       links.add(Link.fromJson(data));
       stderr.writeln('Link Added: $data');
