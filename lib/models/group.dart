@@ -25,3 +25,4 @@ class Group {
         'id': id
       };
 }
+

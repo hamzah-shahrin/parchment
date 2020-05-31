@@ -8,7 +8,6 @@ import 'package:parchment/services/service_locator.dart';
 import 'package:parchment/services/storage_api.dart';
 
 class LinksViewModel extends ChangeNotifier {
-
   Future<List<Link>> _searched;
 
   Future<List<Link>> get searched => _searched;
@@ -23,6 +22,10 @@ class LinksViewModel extends ChangeNotifier {
     search();
   }
 
+  Group getGroup(List<Group> inGroups, int id) {
+    return inGroups.firstWhere((element) => element.id == id);
+  }
+
   Future<void> addLink(Link link) async {
     links.then((value) {
       value.add(link);
@@ -32,20 +35,17 @@ class LinksViewModel extends ChangeNotifier {
 
   Future<void> search({String term: '', List<int> groupIds}) async {
     var temp =
-        serviceLocator<StorageApi>().fetchLinks().then((value) =>
-        value
-            .links);
+        serviceLocator<StorageApi>().fetchLinks().then((value) => value.links);
     if (groupIds == null || groupIds.length == 0) {
-      _searched = temp.then((value) =>
-          value
-              .where((link) =>
-          (link.title.contains(term)) || (link.url.contains(term)))
-              .toList());
+      _searched = temp.then((value) => value
+          .where((link) =>
+              (link.title.contains(term)) || (link.url.contains(term)))
+          .toList());
     } else {
-      _searched = temp.then((value) =>
-          value
-              .where((link) => (listEquals(link.groupIds, groupIds)))
-              .toList());
+      _searched = temp.then((value) => value
+          .where((link) =>
+              (link.groupIds.toSet().intersection(groupIds.toSet())).length ==
+              groupIds.length).toList());
       stderr.writeln('Searched: $_searched');
     }
   }
