@@ -182,6 +182,11 @@ class _SearchScreen extends State<SearchScreen>
                                                 ))
                                             .toList(),
                                       ));
+                                      //serviceLocator<LinksViewModel>()
+                                      //    .addGroup(Group(
+                                      //  title: 'Test Group',
+                                      //  color: Colors.greenAccent
+                                      //));
                                       titleController.clear();
                                       urlController.clear();
                                       FocusScope.of(context).unfocus();

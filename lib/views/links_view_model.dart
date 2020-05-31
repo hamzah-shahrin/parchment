@@ -27,16 +27,27 @@ class LinksViewModel extends ChangeNotifier {
   }
 
   Future<void> addLink(Link link) async {
-    links.then((value) {
-      value.add(link);
-      serviceLocator<StorageApi>().saveLinks(value);
-    });
+    var _links = await links;
+    _links.add(link);
+    serviceLocator<StorageApi>().saveData(DataFormat(
+      links: _links,
+      groups: await groups
+    ));
+  }
+
+  Future<void> addGroup(Group group) async {
+    var _groups = await groups;
+    _groups.add(group);
+    serviceLocator<StorageApi>().saveData(DataFormat(
+        links: await links,
+        groups: _groups
+    ));
   }
 
   Future<void> search({String term: '', List<int> groupIds}) async {
     var temp =
         serviceLocator<StorageApi>().fetchLinks().then((value) => value.links);
-    if (groupIds == null || groupIds.length == 0) {
+    if (groupIds == null ) {
       _searched = temp.then((value) => value
           .where((link) =>
               (link.title.contains(term)) || (link.url.contains(term)))
@@ -51,9 +62,9 @@ class LinksViewModel extends ChangeNotifier {
   }
 }
 
-class FetchedDataFormat {
+class DataFormat {
   List<Link> links;
   List<Group> groups;
 
-  FetchedDataFormat({this.links, this.groups});
+  DataFormat({this.links, this.groups});
 }

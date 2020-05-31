@@ -10,7 +10,7 @@ class Group {
   String title;
 
   Group({
-    this.color, this.title, this.id
+    this.color, this.title, @required this.id
   });
 
   Group.fromJson(Map<String, dynamic> json)
