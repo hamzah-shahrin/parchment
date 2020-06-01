@@ -23,14 +23,16 @@ class GroupList extends StatelessWidget {
           builder: (context, snapshot) {
             List<Group> groups = snapshot.data ?? [];
             if (groups.length > 0)
-              return Column(children: [
+              return Wrap(
+                direction: Axis.horizontal,
+                  children: [
                 Text('Add to group'),
                 Container(
                   height: 30.0,
                   width: double.maxFinite,
                   child: Padding(
                       padding: EdgeInsets.only(top: 4.0),
-                      child: Center(
+                      child: Container(
                           child: ListView.builder(
                               scrollDirection: Axis.horizontal,
                               shrinkWrap: true,

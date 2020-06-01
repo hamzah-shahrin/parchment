@@ -18,6 +18,12 @@ class LinksViewModel extends ChangeNotifier {
   Future<List<Group>> get groups async =>
       serviceLocator<StorageApi>().fetchLinks().then((value) => value.groups);
 
+  Future<int> get topGroupId async =>
+      groups.then((value) {
+        var ids = value.map((e) => e.id).toList();
+        ids.sort();
+        return ids.last;});
+
   Group getGroup(List<Group> inGroups, int id) {
     return inGroups.firstWhere((element) => element.id == id);
   }
@@ -41,7 +47,7 @@ class LinksViewModel extends ChangeNotifier {
   }
 
   Future<void> search({String term: '', List<int> groupIds}) async {
-    stderr.writeln('Searching...');
+    stderr.writeln('Searching... + ${await topGroupId}');
     var temp =
         serviceLocator<StorageApi>().fetchLinks().then((value) => value.links);
     if (groupIds == null || groupIds.length == 0) {

@@ -7,6 +7,7 @@ import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:parchment/services/service_locator.dart';
 import 'package:parchment/views/links_view_model.dart';
 import 'package:parchment/widgets/add_link_dialog.dart';
+import 'package:parchment/widgets/add_settings.dart';
 import 'package:parchment/widgets/group_filters.dart';
 import 'package:parchment/widgets/link_list.dart';
 
@@ -15,8 +16,7 @@ class SearchScreen extends StatefulWidget {
   State<StatefulWidget> createState() => _SearchScreen();
 }
 
-class _SearchScreen extends State<SearchScreen>
-    with SingleTickerProviderStateMixin {
+class _SearchScreen extends State<SearchScreen> {
 
   final searchModel = serviceLocator<LinksViewModel>();
 
@@ -24,6 +24,32 @@ class _SearchScreen extends State<SearchScreen>
     setState(() {
       searchModel.search(groupIds: selectedGroups);
     });
+  }
+
+  void showModal(Widget modalContents) {
+    showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        shape:RoundedRectangleBorder(
+            borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(15.0),
+                topRight: Radius.circular(15.0))),
+        builder: (context) {
+          return SingleChildScrollView(
+              child: Container(
+                padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+                child: modalContents,
+              )
+          );
+        }
+    );
+    searchModel.search();
+  }
+
+  @override
+  void initState() {
+    searchModel.search();
+    super.initState();
   }
 
   @override
@@ -59,16 +85,9 @@ class _SearchScreen extends State<SearchScreen>
           SpeedDialChild(
               child: Icon(Icons.add),
               backgroundColor: Colors.redAccent,
-              label: 'Add link',
-              onTap: () async {
-                await showDialog(
-                    context: context,
-                    builder: (context) =>
-                        AddLinkDialog(viewModel: serviceLocator<LinksViewModel>()));
-                setState(() {
-                  searchModel.search();
-                });
-              }),
+              label: 'Add item',
+              onTap: () => showModal(AddSettings(displayFunction: showModal))
+          ),
         ],
       ),
       body: Column(
