@@ -24,6 +24,9 @@ class LinksViewModel extends ChangeNotifier {
         ids.sort();
         return ids.last;});
 
+  Future<int> get numberOfGroups async =>
+      groups.then((value) => value.length);
+
   Group getGroup(List<Group> inGroups, int id) {
     return inGroups.firstWhere((element) => element.id == id);
   }

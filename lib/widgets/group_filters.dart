@@ -45,6 +45,7 @@ class _GroupFilters extends State<GroupFilters> {
                 itemCount: groups.length,
                 itemBuilder: (context, index) {
                   return GroupButton(
+                    groupName: groups[index].title,
                     defaultColor: groups[index].color,
                     selectedColor: Colors.black,
                     onPressed: () => updateFilterChoices(groups[index].id),

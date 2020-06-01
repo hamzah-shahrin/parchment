@@ -24,30 +24,33 @@ class _LinkList extends State<LinkList>{
                   future: model.searched,
                   builder: (context, snapshot) {
                     List<Link> links = snapshot.data ?? [];
-                    return ListView.builder(
-                      itemCount: links.length,
-                      itemBuilder: (context, index) {
-                        return Padding(
-                          padding: EdgeInsets.only(left: 6.5, right: 6.5),
-                          child: Card(
-                            child: ListTile(
-                                onTap: widget.visitLink(),
-                                title: Text('${links[index].title}'),
-                                subtitle: Text('${links[index].url}'),
-                                dense: true,
-                                trailing: Wrap(
-                                    spacing: 7,
-                                    children: List<Widget>.generate(
-                                        links[index].groups.length,
-                                        (groupIndex) => CircleAvatar(
-                                            radius: 9,
-                                            backgroundColor: links[index]
-                                                .groups[groupIndex]
-                                                .color)))),
-                          ),
-                        );
-                      },
-                    );
+                    if (links.length > 0)
+                      return ListView.builder(
+                        itemCount: links.length,
+                        itemBuilder: (context, index) {
+                          return Padding(
+                            padding: EdgeInsets.only(left: 6.5, right: 6.5),
+                            child: Card(
+                              child: ListTile(
+                                  onTap: widget.visitLink(),
+                                  title: Text('${links[index].title}'),
+                                  subtitle: Text('${links[index].url}'),
+                                  dense: true,
+                                  trailing: Wrap(
+                                      spacing: 7,
+                                      children: List<Widget>.generate(
+                                          links[index].groups.length,
+                                          (groupIndex) => CircleAvatar(
+                                              radius: 9,
+                                              backgroundColor: links[index]
+                                                  .groups[groupIndex]
+                                                  .color)))),
+                            ),
+                          );
+                        },
+                      );
+                    else
+                      return Center(child: Text('No links found!'));
                   },
                 )
         )

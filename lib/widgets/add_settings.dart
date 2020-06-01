@@ -35,7 +35,7 @@ class AddSettings extends StatelessWidget {
             leading: Icon(Icons.folder),
             title: Text('Add group'),
             onTap: () => displayFunction(
-              AddGroupDialog()
+              AddGroupDialog(viewModel: serviceLocator<LinksViewModel>())
             ),
           ),
         ],
