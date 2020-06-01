@@ -31,7 +31,6 @@ class StorageApiImpl implements StorageApi {
     if (prefs.containsKey('groups'))
       jsonDecode(prefs.get('groups')).forEach((key, value) {
         groups.add(Group.fromJson(jsonDecode(value)));
-        stderr.writeln('Groups: $groups');
       });
     return DataFormat(links: links, groups: groups);
   }

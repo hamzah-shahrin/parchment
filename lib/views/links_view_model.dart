@@ -18,10 +18,6 @@ class LinksViewModel extends ChangeNotifier {
   Future<List<Group>> get groups async =>
       serviceLocator<StorageApi>().fetchLinks().then((value) => value.groups);
 
-  void initialise() {
-    search();
-  }
-
   Group getGroup(List<Group> inGroups, int id) {
     return inGroups.firstWhere((element) => element.id == id);
   }
@@ -45,9 +41,10 @@ class LinksViewModel extends ChangeNotifier {
   }
 
   Future<void> search({String term: '', List<int> groupIds}) async {
+    stderr.writeln('Searching...');
     var temp =
         serviceLocator<StorageApi>().fetchLinks().then((value) => value.links);
-    if (groupIds == null ) {
+    if (groupIds == null || groupIds.length == 0) {
       _searched = temp.then((value) => value
           .where((link) =>
               (link.title.contains(term)) || (link.url.contains(term)))
@@ -57,7 +54,7 @@ class LinksViewModel extends ChangeNotifier {
           .where((link) =>
               (link.groupIds.toSet().intersection(groupIds.toSet())).length ==
               groupIds.length).toList());
-      stderr.writeln('Searched: $_searched');
+      _searched.then((value) => stderr.writeln(value.length));
     }
   }
 }

@@ -1,15 +1,14 @@
 import 'dart:io';
-import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
-import 'package:parchment/models/group.dart';
-import 'package:parchment/models/link.dart';
 import 'package:parchment/services/service_locator.dart';
 import 'package:parchment/views/links_view_model.dart';
-import 'package:provider/provider.dart';
+import 'package:parchment/widgets/add_link_dialog.dart';
+import 'package:parchment/widgets/group_filters.dart';
+import 'package:parchment/widgets/link_list.dart';
 
 class SearchScreen extends StatefulWidget {
   @override
@@ -18,19 +17,13 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreen extends State<SearchScreen>
     with SingleTickerProviderStateMixin {
-  final _formKey = GlobalKey<FormState>();
-  final titleController = TextEditingController();
-  final urlController = TextEditingController();
 
   final searchModel = serviceLocator<LinksViewModel>();
 
-  var selectedGroups = <int>[];
-  var dialogChoices = <int>[];
-
-  @override
-  void initState() {
-    searchModel.initialise();
-    super.initState();
+  void updateGroupSearch(List<int> selectedGroups) {
+    setState(() {
+      searchModel.search(groupIds: selectedGroups);
+    });
   }
 
   @override
@@ -71,7 +64,7 @@ class _SearchScreen extends State<SearchScreen>
                 await showDialog(
                     context: context,
                     builder: (context) =>
-                        _buildDialog(serviceLocator<LinksViewModel>()));
+                        AddLinkDialog(viewModel: serviceLocator<LinksViewModel>()));
                 setState(() {
                   searchModel.search();
                 });
@@ -106,251 +99,17 @@ class _SearchScreen extends State<SearchScreen>
                     Spacer(),
                     Container(
                       height: 30.0,
-                      child: _buildFilterList(serviceLocator<LinksViewModel>()),
+                      child: GroupFilters(viewModel: serviceLocator<LinksViewModel>(),
+                      search: updateGroupSearch),
                     )
                   ],
                 ),
               )),
           Expanded(
-            child: _buildResults(searchModel),
+            child: LinkList(viewModel: searchModel, visitLink: (){}),
           )
         ],
       ),
     );
-  }
-
-  Widget _buildDialog(LinksViewModel viewModel) {
-    dialogChoices = [];
-    return ListenableProvider<LinksViewModel>(
-        create: (_) => viewModel,
-        child: Consumer<LinksViewModel>(
-          builder: (context, model, child) => FutureBuilder<List<Group>>(
-              future: model.groups,
-              builder: (context, snapshot) {
-                List<Group> groups = snapshot.data ?? [];
-                return AlertDialog(
-                    title: Text('Add Link'),
-                    content: Form(
-                        key: _formKey,
-                        child: Container(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              TextFormField(
-                                controller: titleController,
-                                decoration: InputDecoration(labelText: 'Title'),
-                                validator: (value) {
-                                  if (value.isEmpty)
-                                    return 'Please enter some text';
-                                  return null;
-                                },
-                              ),
-                              TextFormField(
-                                controller: urlController,
-                                decoration: InputDecoration(labelText: 'URL'),
-                                validator: (value) {
-                                  if (value.isEmpty)
-                                    return 'Please enter some text';
-                                  return null;
-                                },
-                              ),
-                              Padding(
-                                  padding: EdgeInsets.only(top: 15.0),
-                                  child: _buildGroupList(
-                                      serviceLocator<LinksViewModel>())),
-                              Padding(
-                                padding: EdgeInsets.only(top: 8.0),
-                                child: RaisedButton(
-                                  color: Theme.of(context).primaryColor,
-                                  textTheme:
-                                      Theme.of(context).buttonTheme.textTheme,
-                                  onPressed: () {
-                                    if (_formKey.currentState.validate()) {
-                                      serviceLocator<LinksViewModel>()
-                                          .addLink(Link(
-                                        title: titleController.text,
-                                        url: urlController.text,
-                                        groups: dialogChoices
-                                            .map((id) => Group(
-                                                  title: model
-                                                      .getGroup(groups, id)
-                                                      .title,
-                                                  color: model
-                                                      .getGroup(groups, id)
-                                                      .color,
-                                                  id: id,
-                                                ))
-                                            .toList(),
-                                      ));
-                                      //serviceLocator<LinksViewModel>()
-                                      //    .addGroup(Group(
-                                      //  title: 'Test Group',
-                                      //  color: Colors.greenAccent
-                                      //));
-                                      titleController.clear();
-                                      urlController.clear();
-                                      FocusScope.of(context).unfocus();
-                                      Navigator.pop(context);
-                                    }
-                                  },
-                                  child: Text("Add Link"),
-                                ),
-                              )
-                            ],
-                          ),
-                        )));
-              }),
-        ));
-  }
-
-  Widget _buildGroupList(LinksViewModel viewModel) {
-    return ChangeNotifierProvider<LinksViewModel>(
-      create: (context) => viewModel,
-      child: Consumer<LinksViewModel>(
-        builder: (context, model, child) => FutureBuilder<List<Group>>(
-          future: model.groups,
-          builder: (context, snapshot) {
-            List<Group> groups = snapshot.data ?? [];
-            if (groups.length > 0)
-              return Column(children: [
-                Text('Add to group'),
-                Container(
-                  height: 30.0,
-                  width: double.maxFinite,
-                  child: Padding(
-                      padding: EdgeInsets.only(top: 4.0),
-                      child: Center(
-                          child: ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              shrinkWrap: true,
-                              itemCount: groups.length,
-                              itemBuilder: (context, index) {
-                                return GroupButton(
-                                  defaultColor: groups[index].color,
-                                  selectedColor: Colors.black,
-                                  tap: () {
-                                    setState(() {
-                                      !dialogChoices.contains(groups[index].id)
-                                          ? dialogChoices.add(groups[index].id)
-                                          : dialogChoices
-                                              .remove(groups[index].id);
-                                    });
-                                  },
-                                );
-                              }))),
-                )
-              ]);
-            return Text('Add to groups: No groups exist',
-                style: TextStyle(fontSize: 15.0));
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFilterList(LinksViewModel viewModel) {
-    return ChangeNotifierProvider<LinksViewModel>(
-      create: (context) => viewModel,
-      child: Consumer<LinksViewModel>(
-        builder: (context, model, child) => FutureBuilder<List<Group>>(
-          future: model.groups,
-          builder: (context, snapshot) {
-            List<Group> groups = snapshot.data ?? [];
-            return ListView.builder(
-                scrollDirection: Axis.horizontal,
-                shrinkWrap: true,
-                itemCount: groups.length,
-                itemBuilder: (context, index) {
-                  return GroupButton(
-                    defaultColor: groups[index].color,
-                    selectedColor: Colors.black,
-                    tap: () {
-                      setState(() {
-                        !selectedGroups.contains(groups[index].id)
-                            ? selectedGroups.add(groups[index].id)
-                            : selectedGroups.remove(groups[index].id);
-                        searchModel.search(groupIds: selectedGroups);
-                      });
-                    },
-                  );
-                });
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildResults(LinksViewModel viewModel) {
-    return ChangeNotifierProvider<LinksViewModel>(
-        create: (context) => viewModel,
-        child: Consumer<LinksViewModel>(
-            builder: (context, model, child) => FutureBuilder<List<Link>>(
-                  future: model.searched,
-                  builder: (context, snapshot) {
-                    List<Link> links = snapshot.data ?? [];
-                    return ListView.builder(
-                      itemCount: links.length,
-                      itemBuilder: (context, index) {
-                        return Padding(
-                          padding: EdgeInsets.only(left: 6.5, right: 6.5),
-                          child: Card(
-                            child: ListTile(
-                                title: Text('${links[index].title}'),
-                                subtitle: Text('${links[index].url}'),
-                                dense: true,
-                                trailing: Wrap(
-                                    spacing: 7,
-                                    children: List<Widget>.generate(
-                                        links[index].groups.length,
-                                        (groupIndex) => CircleAvatar(
-                                            radius: 9,
-                                            backgroundColor: links[index]
-                                                .groups[groupIndex]
-                                                .color)))),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                )));
-  }
-}
-
-// ignore: must_be_immutable
-class GroupButton extends StatefulWidget {
-  VoidCallback tap;
-  Color defaultColor;
-  Color selectedColor;
-
-  GroupButton({this.tap, this.defaultColor, this.selectedColor});
-
-  @override
-  State<StatefulWidget> createState() => _GroupButton();
-}
-
-class _GroupButton extends State<GroupButton> {
-  bool _selected = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-        padding: EdgeInsets.only(right: 5.0),
-        child: CircleAvatar(
-          radius: 9,
-          backgroundColor:
-              _selected ? widget.selectedColor : widget.defaultColor,
-          child: CircleAvatar(
-              radius: 7,
-              backgroundColor: widget.defaultColor,
-              child: IconButton(
-                icon: Icon(Icons.adjust, color: widget.defaultColor, size: 1),
-                onPressed: () {
-                  widget.tap();
-                  this.setState(() {
-                    _selected = !_selected;
-                  });
-                },
-              )),
-        ));
   }
 }
